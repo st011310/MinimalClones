@@ -1,21 +1,33 @@
 from math import gcd
 from functools import reduce
 from itertools import product, permutations
+from typing import Iterable
 
-def encodeTuple(xs, k: int):
+def encodeTuple(xs: tuple[int, ...], k: int):
+    '''Кодирует кортеж из n чисел от 0 до k-1 в число.'''
     value = 0
     for x in xs:
         value = value * k + x
     return value
 
 
-def decodeTuple(index, n: int, k: int):
+def decodeTuple(index: int, n: int, k: int) -> tuple[int, ...]:
+    '''Возвращает кортеж из n чисел от 0 до k-1, кодируемый данным индексом.'''
     xs = []
     for _ in range(n):
         xs.append(index % k)
         index //= k
     return tuple(reversed(xs))
 
+def nextTuple(xs: tuple[int, ...], k: int):
+    '''Возвращает следующий кортеж в лексикографическом порядке.'''
+    n = len(xs)
+    return decodeTuple((encodeTuple(xs, k) + 1) % (k ** n), n, k)
+
+def prevTuple(xs: tuple[int, ...], k: int):
+    '''Возвращает предыдущий кортеж в лексикографическом порядке.'''
+    n = len(xs)
+    return decodeTuple((encodeTuple(xs, k) - 1) % (k ** n), n, k)
 
 def conjugateTable(table, n: int, k: int, psi: tuple):
     """
@@ -23,6 +35,10 @@ def conjugateTable(table, n: int, k: int, psi: tuple):
     table[index(x1,...,xn)] = f(x1,...,xn)
     psi: перестановка значений 0..k-1
     """
+    assert isinstance(table, (tuple, list))
+    assert len(table) > 0
+    if isinstance(table[0], (tuple, list)):
+        table = [x for row in table for x in row]
     psi_inv = [0] * k
     for i, p in enumerate(psi):
         psi_inv[p] = i
@@ -30,7 +46,6 @@ def conjugateTable(table, n: int, k: int, psi: tuple):
     new_table = [0] * (k ** n)
 
     for x in product(range(k), repeat=n):
-        # psi(x)
         px = tuple(psi[a] for a in x)
 
         old_index = encodeTuple(px, k)
@@ -47,12 +62,13 @@ def conjugateTable(table, n: int, k: int, psi: tuple):
 
 def canonicalTable(table, n: int, k: int):
     best = None
-    # print("Canonicalizing", table)
+    print("Canonicalizing", table)
 
     for psi in permutations(range(k)):
         t = conjugateTable(table, n, k, psi)
         if best is None or t < best:
             best = t
+            print("New best:", best, "with psi =", psi)
     # print("Canonical form:", best)
     return best
 
@@ -131,3 +147,8 @@ def isPrimePermutation(perm: list):
     order = permutationOrder(perm)
     return isPrime(order)
 
+def getNewSingletonElement(knownElems: set[int], allElems: set[int]):
+    if len(allElems) != len(knownElems):
+        return {min(allElems - knownElems)}
+    else:
+        return set()
