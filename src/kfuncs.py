@@ -42,11 +42,11 @@ class Func1(Entity):
         return ans
 
     def unpack(self, code: int):
-        assert self.isComplete()
         n = len(self.body)
         for i in range(n):
             self.body[n - i - 1] = code % self.K
             code //= self.K
+        return self
 
     def isSuitable(self) -> bool:
         if self(self) == self:

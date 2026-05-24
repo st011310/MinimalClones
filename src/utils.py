@@ -1,6 +1,83 @@
 from math import gcd
 from functools import reduce
-from collections import defaultdict
+from itertools import product, permutations
+
+def encodeTuple(xs, k: int):
+    value = 0
+    for x in xs:
+        value = value * k + x
+    return value
+
+
+def decodeTuple(index, n: int, k: int):
+    xs = []
+    for _ in range(n):
+        xs.append(index % k)
+        index //= k
+    return tuple(reversed(xs))
+
+
+def conjugateTable(table, n: int, k: int, psi: tuple):
+    """
+    table: список длины k^n.
+    table[index(x1,...,xn)] = f(x1,...,xn)
+    psi: перестановка значений 0..k-1
+    """
+    psi_inv = [0] * k
+    for i, p in enumerate(psi):
+        psi_inv[p] = i
+
+    new_table = [0] * (k ** n)
+
+    for x in product(range(k), repeat=n):
+        # psi(x)
+        px = tuple(psi[a] for a in x)
+
+        old_index = encodeTuple(px, k)
+        value = table[old_index]
+
+        # psi^{-1}(f(psi(x)))
+        new_value = psi_inv[value]
+
+        new_index = encodeTuple(x, k)
+        new_table[new_index] = new_value
+
+    return tuple(new_table)
+
+
+def canonicalTable(table, n: int, k: int):
+    best = None
+    # print("Canonicalizing", table)
+
+    for psi in permutations(range(k)):
+        t = conjugateTable(table, n, k, psi)
+        if best is None or t < best:
+            best = t
+    # print("Canonical form:", best)
+    return best
+
+
+def removeConjugates(functions, n: int, k: int):
+    """
+    functions: список таблиц истинности.
+    Возвращает список представителей классов сопряжённости.
+    """
+    seen = {}
+    result = []
+
+    for table in functions:
+        key = canonicalTable(table, n, k)
+        if key not in seen:
+            seen[key] = table
+            result.append(table)
+        else:
+            t1 = seen[key]
+            if table < t1:
+                seen[key] = table
+                result.remove(t1)
+                result.append(table)
+    return result
+
 
 def lcm(a, b):
     return a * b // gcd(a, b)
@@ -54,61 +131,3 @@ def isPrimePermutation(perm: list):
     order = permutationOrder(perm)
     return isPrime(order)
 
-
-def canonicalFunction(f):
-    """
-    f: list/array длины N, f[i] = f(i)
-    Возвращает хешируемый канонический представитель.
-    """
-    N = len(f)
-    visited = [False] * N
-    components = []
-
-    for start in range(N):
-        if visited[start]:
-            continue
-        path = []
-        curr = start
-        while not visited[curr]:
-            visited[curr] = True
-            path.append(curr)
-            curr = f[curr]
-
-        cycle_start = path.index(curr) if curr in path else -1
-        cycle = path[cycle_start:] if cycle_start != -1 else []
-        # trees_nodes = set(path[:cycle_start])
-
-        rev_adj = defaultdict(list)
-        for u in path[:cycle_start]:
-            rev_adj[f[u]].append(u)
-
-        def canon_tree(root):
-            stack = [(root, False)]
-            results = {}
-            while stack:
-                node, processed = stack.pop()
-                if not processed:
-                    stack.append((node, True))
-                    for child in rev_adj[node]:
-                        stack.append((child, False))
-                else:
-                    childs_canon = sorted(results[child] for child in rev_adj[node])
-                    results[node] = "(" + "".join(childs_canon) + ")"
-            return results[root]
-        tree_canons = [canon_tree(node) for node in cycle]
-        min_shift = min(range(len(tree_canons)),
-                        key=lambda i: tuple(tree_canons[i:] + tree_canons[:i]))
-        comp_canon = "".join(tree_canons[min_shift:] + tree_canons[:min_shift])
-        components.append(comp_canon)
-
-    return tuple(sorted(components))
-
-def removeIsomorphicFunctions(func_list: list[int]):
-    seen = {}
-    result = []
-    for f in func_list:
-        canon = canonicalFunction(f)
-        if canon not in seen:
-            seen[canon] = f
-            result.append(f)
-    return result

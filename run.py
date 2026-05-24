@@ -1,3 +1,4 @@
+import test
 from src import main
 
 K = 4

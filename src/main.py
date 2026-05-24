@@ -1,6 +1,6 @@
 from libs.branch_bound import BranchAndBound
 from .kfuncs import Func1
-from .utils import removeIsomorphicFunctions
+from .utils import removeConjugates
 
 def main(K: int, filenames: list[str], verbose = False):
     funcs =[Func1]
@@ -8,6 +8,8 @@ def main(K: int, filenames: list[str], verbose = False):
         t = funcs[i]
         solver = BranchAndBound(t(K), verbose=verbose)
         solver.solve()
-        solver.entities = removeIsomorphicFunctions(solver.entities)
-
-        solver.save(filenames[i])
+        solver.entities = removeConjugates(
+            [t(K).unpack(num).body for num in  solver.entities],
+            k=K, n=i+1
+        )
+        solver.save_transform(filenames[i], lambda f: "".join([str(num) for num in f]))

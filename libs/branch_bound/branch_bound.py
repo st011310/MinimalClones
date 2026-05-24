@@ -43,6 +43,10 @@ class BranchAndBound:
         with open(filename, "w") as f:
             f.writelines([f"{num}\n" for num in self.entities if pred(num)])
 
+    def save_transform(self, filename, frans):
+        with open(filename, "w") as f:
+            f.writelines([f"{frans(num)}\n" for num in self.entities])
+
     def save(self, filename):
         return self.save_if(filename, lambda x: True)
 
