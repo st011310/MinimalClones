@@ -1,4 +1,5 @@
 from queue import SimpleQueue
+from typing import Callable
 from .entity import Entity
 
 class BranchAndBound:
@@ -15,7 +16,7 @@ class BranchAndBound:
         """
         self.initial = initial
         self.verbose = verbose
-        self.entities = set()
+        self.entityHashes = set()
 
     def solve(self):
         queue = SimpleQueue[Entity]()
@@ -30,23 +31,30 @@ class BranchAndBound:
             if entity.isComplete():
                 if entity.isSuitable():
                     h = entity.pack()
-                    if h not in self.entities:
-                        self.entities.add(h)
+                    if h not in self.entityHashes:
+                        self.entityHashes.add(h)
                 continue
 
             for child in entity.branches():
                 if child.isCorrect():
                     queue.put(child)
-        return self.entities
+        return self.entityHashes
 
-    def save_if(self, filename, pred):
+    def filterEntity(self, pred: Callable):
+        self.entityHashes = {entity for entity in self.entityHashes if pred(entity)}
+
+    def save_if(self, filename, pred, entities = None):
+        if entities is None:
+            entities = self.entityHashes
         with open(filename, "w") as f:
-            f.writelines([f"{num}\n" for num in self.entities if pred(num)])
+            f.writelines([f"{entity}\n" for entity in entities if pred(entity)])
 
-    def save_transform(self, filename, frans):
+    def save_transform(self, filename, frans, entities = None):
+        if entities is None:
+            entities = self.entityHashes
         with open(filename, "w") as f:
-            f.writelines([f"{frans(num)}\n" for num in self.entities])
+            f.writelines([f"{frans(entity)}\n" for entity in entities])
 
-    def save(self, filename):
-        return self.save_if(filename, lambda x: True)
+    def save(self, filename: str, entities = None):
+        return self.save_if(filename, lambda x: True, entities=entities)
 

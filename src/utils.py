@@ -10,26 +10,66 @@ def encodeTuple(xs: tuple[int, ...], k: int):
         value = value * k + x
     return value
 
-
-def decodeTuple(index: int, n: int, k: int) -> tuple[int, ...]:
+def decodeTuple(num: int, n: int, k: int) -> tuple[int, ...]:
     '''Возвращает кортеж из n чисел от 0 до k-1, кодируемый данным индексом.'''
-    xs = []
+    assert isinstance(num, int), num
+    coord = []
     for _ in range(n):
-        xs.append(index % k)
-        index //= k
-    return tuple(reversed(xs))
+        num, rem = divmod(num, k)
+        coord.append(rem)
+    res = tuple(reversed(coord))
+    return res
 
-def nextTuple(xs: tuple[int, ...], k: int):
-    '''Возвращает следующий кортеж в лексикографическом порядке.'''
+def nextTuple(xs: tuple[int, ...] | list[int], k: int):
+    '''Возвращает следующий кортеж ...'''
     n = len(xs)
-    return decodeTuple((encodeTuple(xs, k) + 1) % (k ** n), n, k)
+    assert n > 0, xs
+    if n == 1:
+        assert xs[0] < k
+        return (xs[0] + 1,)
 
-def prevTuple(xs: tuple[int, ...], k: int):
-    '''Возвращает предыдущий кортеж в лексикографическом порядке.'''
-    n = len(xs)
-    return decodeTuple((encodeTuple(xs, k) - 1) % (k ** n), n, k)
+    if all(it == xs[0] for it in xs):
+        assert xs[0] + 1 <= k, (xs[0], k)
+        return tuple((n-1) *[0] + [xs[0] + 1])
 
-def conjugateTable(table, n: int, k: int, psi: tuple):
+    max_val = max(xs)
+    if k > max_val:
+        return nextTuple(xs, max_val)
+
+    idx = xs.index(k)
+    left = xs[:idx]
+    if idx + 1 == n:
+        if min(left) == k - 1:
+            return (0,) * (n-2) + (k, 0)
+        leftAns = nextTuple(left, k-1)
+        return leftAns + (k,)
+    right = xs[idx + 1:]
+    if min(right) == k:
+        if min(left) == k - 1:
+           return tuple([0] * (len(left) - 1) + [k] + [0] * (len(right) + 1))
+        leftAns = nextTuple(left, k-1)
+        return leftAns + (k,) + right
+
+    return tuple(left) + (k,) + nextTuple(right, k)
+
+# def prevTuple(xs: tuple[int, ...], k: int):
+#     '''Возвращает предыдущий кортеж в лексикографическом порядке.'''
+#     n = len(xs)
+#     return decodeTuple((encodeTuple(xs, k) - 1) % (k ** n), n, k)
+
+def reval(table: list):
+    if not isinstance(table[0], int) and table[0] is not None:
+        table = sum([reval(subtable) for subtable in table], start=[])
+    return table
+
+def make_nested(size: int, depth: int):
+    """Создаёт depth-мерный список размера size, заполненный None."""
+    if depth == 1:
+        return [None] * size
+    return [make_nested(size, depth - 1) for _ in range(size)]
+
+
+def conjugateTable(table: list[int], n: int, k: int, psi: tuple):
     """
     table: список длины k^n.
     table[index(x1,...,xn)] = f(x1,...,xn)
@@ -37,8 +77,8 @@ def conjugateTable(table, n: int, k: int, psi: tuple):
     """
     assert isinstance(table, (tuple, list))
     assert len(table) > 0
-    if isinstance(table[0], (tuple, list)):
-        table = [x for row in table for x in row]
+    assert isinstance(table[0], int)
+
     psi_inv = [0] * k
     for i, p in enumerate(psi):
         psi_inv[p] = i
@@ -60,20 +100,17 @@ def conjugateTable(table, n: int, k: int, psi: tuple):
     return tuple(new_table)
 
 
-def canonicalTable(table, n: int, k: int):
+def canonicalTable(table: list, n: int, k: int):
     best = None
-    print("Canonicalizing", table)
 
     for psi in permutations(range(k)):
-        t = conjugateTable(table, n, k, psi)
+        t = conjugateTable(reval(table), n, k, psi)
         if best is None or t < best:
             best = t
-            print("New best:", best, "with psi =", psi)
-    # print("Canonical form:", best)
     return best
 
 
-def removeConjugates(functions, n: int, k: int):
+def removeConjugates(functions: list[list], n: int, k: int):
     """
     functions: список таблиц истинности.
     Возвращает список представителей классов сопряжённости.
@@ -151,4 +188,4 @@ def getNewSingletonElement(knownElems: set[int], allElems: set[int]):
     if len(allElems) != len(knownElems):
         return {min(allElems - knownElems)}
     else:
-        return set()
+        return set[int]()
