@@ -7,14 +7,15 @@ class BranchAndBound:
     Обобщённый решатель методом ветвей и границ.
     """
 
-    def __init__(self, initial: Entity, verbose = False):
+    def __init__(self, initial: Entity | None, verbose = False):
         """
         Параметры
         ---------
         initial : Entity
             Начальный узел (корень дерева перебора).
         """
-        self.initial = initial
+        if initial:
+            self.initial = initial
         self.verbose = verbose
         self.entityHashes = set()
 
@@ -24,9 +25,9 @@ class BranchAndBound:
         i = 0
         while not queue.empty():
             entity = queue.get()
-            if self.verbose:
+            if self.verbose and (i % 1_000 == 0):
                 print(f"{i}. {entity}")
-                i += 1
+            i += 1
 
             if entity.isComplete():
                 if entity.isSuitable():
@@ -57,4 +58,3 @@ class BranchAndBound:
 
     def save(self, filename: str, entities = None):
         return self.save_if(filename, lambda x: True, entities=entities)
-

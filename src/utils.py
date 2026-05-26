@@ -1,7 +1,7 @@
 from math import gcd
 from functools import reduce
 from itertools import product, permutations
-from typing import Iterable
+
 
 def encodeTuple(xs: tuple[int, ...], k: int):
     '''Кодирует кортеж из n чисел от 0 до k-1 в число.'''
@@ -51,6 +51,27 @@ def nextTuple(xs: tuple[int, ...] | list[int], k: int):
         return leftAns + (k,) + right
 
     return tuple(left) + (k,) + nextTuple(right, k)
+
+def tupleIterator(k: int, n: int):
+    assert n >= 0, n
+    assert k >= 1, k
+    if n == 0:
+        yield tuple()
+        return
+    if n == 1:
+        for i in range(k):
+            yield (i,)
+        return
+    if k == 1:
+        yield (0,) * n
+        return
+
+    for i in tupleIterator(k-1, n):
+        yield i
+    for i in reversed(range(n)):
+        for left in tupleIterator(k-1, i):
+            for right in tupleIterator(k, n-i-1):
+                yield left + (k-1,) + right
 
 # def prevTuple(xs: tuple[int, ...], k: int):
 #     '''Возвращает предыдущий кортеж в лексикографическом порядке.'''
@@ -109,7 +130,6 @@ def canonicalTable(table: list, n: int, k: int):
             best = t
     return best
 
-
 def removeConjugates(functions: list[list], n: int, k: int):
     """
     functions: список таблиц истинности.
@@ -130,7 +150,6 @@ def removeConjugates(functions: list[list], n: int, k: int):
                 result.remove(t1)
                 result.append(table)
     return result
-
 
 def lcm(a, b):
     return a * b // gcd(a, b)

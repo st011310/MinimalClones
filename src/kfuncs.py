@@ -1,7 +1,9 @@
 from copy import deepcopy
 from itertools import product, permutations
 from libs.branch_bound import Entity
-from .utils import isPrimePermutation, getNewSingletonElement, nextTuple, reval, make_nested, decodeTuple
+from .utils import (isPrimePermutation, getNewSingletonElement,
+                    nextTuple, make_nested,
+                    decodeTuple, tupleIterator)
 
 class FuncN(Entity):
     def __init__(self, N: int, K: int) -> None:
@@ -13,6 +15,14 @@ class FuncN(Entity):
         self.nextCoord = (0,) * N
         self.knownElems = set[int]()
         self.deaph = 0
+        self._flat_cache = None
+
+    def reval(self):
+        if not self._flat_cache:
+            self._flat_cache = [
+                self[coord] for coord in tupleIterator(n=self.N, k=self.K)
+            ]
+        return self._flat_cache
 
     def inplace_copy(self, of: 'FuncN'):
         self.body = deepcopy(of.body)
@@ -46,13 +56,15 @@ class FuncN(Entity):
             yield obj
 
     def isComplete(self) -> bool:
-        return all(v is not None for v in reval(self.body))
+        return all(v is not None for v in self.reval())
 
     def isCorrect(self):
         '''Функция минимальна среди порождающих функций'''
         if self.N <= 1:
             return True
-        for funcs in permutations([self] + [None] * (self.N - 1)):
+        for funcs in product([self, None], repeat=self.N):
+            if not any(funcs):
+                continue
             ans = self.compose(*funcs)
             if ans < self:
                 return False
@@ -91,7 +103,10 @@ class FuncN(Entity):
     def pack(self) -> int:
         assert self.isComplete()
         ans = 0
-        for dig in reval(self.body):
+        for i in range(self.K ** self.N):
+            coord = decodeTuple(i, self.N, self.K)
+            dig = self[coord]
+            assert dig is not None
             ans = ans * self.K + dig
         return ans
 
@@ -102,13 +117,37 @@ class FuncN(Entity):
             code //= self.K
         return self
 
+    def getMinimalClone(self, stop_on = set[int]()):
+        trivial_clone = {}
+        for i in range(self.N):
+            xi = FuncN(self.N, self.K)
+            for coords in tupleIterator(self.K, self.N):
+                xi[coords] = coords[i]
+            trivial_clone[xi.pack()] = xi
+        clone = {}
+        for funcs in permutations(trivial_clone.values()):
+            new_func = self.compose(*funcs)
+            code = new_func.pack()
+            clone[code] = new_func
+            if code in stop_on:
+                return {code:new_func}
+        cur_len = 0
+        while len(clone) != cur_len:
+            cur_len = len(clone)
+            for funcs in product(clone.values(), repeat=self.N):
+                new_func = self.compose(*funcs)
+                code = new_func.pack()
+                clone[code] = new_func
+                if code in stop_on:
+                    return {code:new_func}
+        return clone
+
     def __getitem__(self, key):
         """key – кортеж длины N."""
         if not isinstance(key, tuple) or len(key) != self.N:
             raise KeyError(f"Требуется кортеж длины {self.N}")
         if any(idx is None for idx in key):
             return None
-
         val = self.body
         for idx in key:
             val = val[idx]
@@ -135,17 +174,17 @@ class FuncN(Entity):
     def __lt__(self, other: 'FuncN'):
         assert self.N == other.N, (self.N, other.N)
         assert self.K == other.K, (self.K, other.K)
-        self_reval = reval(self.body)
-        other_reval = reval(other.body)
+        self_reval = self.reval()
+        other_reval = other.reval()
         assert len(self_reval) == len(other_reval)
-        for i in range(len(self_reval)):
-            if self_reval[i] is None:
+        for s, o in zip(self_reval, other_reval):
+            if s is None:
                 return False
-            if other_reval[i] is None:
+            if o is None:
                 return False
-            if self_reval[i] < other_reval[i]:
+            if s < o:
                 return True
-            if self_reval[i] > other_reval[i]:
+            if s > o:
                 return False
 
 class Func1(FuncN):
@@ -205,17 +244,16 @@ class Func2(FuncN):
         if self.nextCoord == (0, 0):
             return True
         if not self.isVarOrder:
-            for i in range(self.K):
-                for j in range(self.K):
-                    xij = self.body[i][j]
-                    xji = self.body[j][i]
-                    if xij is None or xji is None:
-                        return True
-                    if xij > xji:
-                        return False
-                    if xij < xji:
-                        self.isVarOrder = True
-                        return True
+            for i, j in tupleIterator(k=self.K,n=self.N):
+                xij = self.body[i][j]
+                xji = self.body[j][i]
+                if xij is None or xji is None:
+                    return True
+                if xij > xji:
+                    return False
+                if xij < xji:
+                    self.isVarOrder = True
+                    return True
         return super().isCorrect()
     def isSuitable(self) -> bool:
         for i in range(self.K):

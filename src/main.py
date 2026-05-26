@@ -1,20 +1,30 @@
 from libs.branch_bound import BranchAndBound
-from .kfuncs import Func1, Func2
-from .utils import removeConjugates, canonicalTable
+from .kfuncs import Func1, Func2, FuncN
+from .stats import addStats
+from .utils import removeConjugates
+
+import datetime, os
+
+SOLVE_INFO_FILE = "solve_info.csv"
+
 
 def main(K: int, filenames: list[str], verbose = False):
     funcs: list[type[Func1 | Func2]] = [Func1, Func2]
     for i in range(min(2, len(filenames))):
         t = funcs[i]
+        N = i+1
         solver = BranchAndBound(t(K), verbose=verbose)
+        tStart = datetime.datetime.now()
         solver.solve()
+        tEnd = datetime.datetime.now()
+        addStats(start=tStart, end=tEnd, delta=tEnd-tStart, args_num=N,
+                 K=K, funcs_found=len(solver.entityHashes), comment="",
+                 filename=os.path.join("output", SOLVE_INFO_FILE))
+        print("Remove duplicates...")
         entities = removeConjugates(
             [t(K).unpack(num).body for num in  solver.entityHashes],
-            k=K, n=i+1
+            k=K, n=N
         )
+        print("Sorting...")
         entities.sort()
         solver.save(filenames[i], entities)
-        # if len(solver.entities) > 0 and len(solver.entities[0]) > 0:
-        #     while isinstance(solver.entities[0][0], (list, tuple)):
-        #         solver.entities = [sum(entity, []) for entity in solver.entities]
-        # solver.save_transform(filenames[i], lambda f: "".join(map(str, f)))
