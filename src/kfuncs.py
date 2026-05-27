@@ -64,8 +64,6 @@ class FuncN(Entity):
         if self.N <= 1:
             return True
         if max_iteration is None:
-            # max_iteration = 2 ** (self.maxDeaph - self.deaph)
-            best_choose = [0] * 5 + [5, 8, 44, 57, 45, 99]
             if self.deaph <= 10:
                 max_iteration = 100
             else:
@@ -77,21 +75,13 @@ class FuncN(Entity):
             max_iteration -= 1
             i += 1
             if func < self:
-                # print(f"{self.deaph}. max_iteration for detecting =", i)
                 return False
-        # print(f"{self.deaph}. max_iteration for loosing =", i)
-        # for funcs in product([self, None], repeat=self.N):
-        #     if not any(funcs):
-        #         continue
-        #     ans = self.compose(*funcs)
-        #     if ans < self:
-        #         return False
         return True
 
     def isSuitable(self) -> bool:
-        """Проверяет идемпотентность на диагонали: f(i,i,...,i) == i для всех i."""
-        for i in range(self.K):
-            if self[(i,) * self.N] != i:
+        """Проверяем минимальность функции в своём клоне"""
+        for func in self.getCloneIterator():
+            if func < self:
                 return False
         return True
 

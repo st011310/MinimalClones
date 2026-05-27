@@ -29,12 +29,12 @@ class BranchAndBound:
         while not queue.empty():
             entity = queue.get()
             if deaph != entity.deaph:
-                print(f"Deaph {deaph}. Correct are {corrected} from {added}. It's {corrected / added * 100}%")
+                print(f"Deaph {deaph}. Correct are {corrected} from {added}. It's {corrected / added * 100:.2f}%")
                 deaph = entity.deaph
                 added = 0
                 corrected = 0
 
-            if self.verbose and (i % 50 == 0):
+            if self.verbose and (i % 1_000 == 0):
                 print(f"{i}. {entity}")
             i += 1
 
