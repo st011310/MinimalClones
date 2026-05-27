@@ -25,17 +25,27 @@ def main(K: int, filenames: list[str], verbose = False):
                  K=K, funcs_found=len(solver.entityHashes), comment="",
                  filename=os.path.join("output", SOLVE_INFO_FILE))
         print("Remove duplicates...")
-        entities = removeConjugates(
+        tables = removeConjugates(
             [t(K).unpack(num).body for num in  solver.entityHashes],
             k=K, n=N
         )
-        print("Filter minimum...")
-        res = []
-        for entity in tqdm(entities):
-            func = FuncN(K=K, N=N)
-            func.body = entity
-            if func.isMinimal():
-                res.append(func.body)
+        if False:
+            print("Filter minimum...")
+            entities = list[FuncN]()
+            for table in tqdm(tables, desc="Подготовка"):
+                func = FuncN(K=K, N=N)
+                func.body = table
+                entities.append(func)
+            entities.sort(key = lambda f: len(set(f.reval())))
+            res = []
+            minimals = set[int]()
+            for entity in tqdm(entities):
+                if not entity.isMinimal(minimals):
+                    continue
+                minimals.add(entity.pack())
+                res.append(entity.body)
+        else:
+            res = tables
         print("Sorting...")
         res.sort()
         solver.save(filenames[i], res)

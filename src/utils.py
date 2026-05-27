@@ -1,28 +1,30 @@
-from tqdm import tqdm
+from numpy.typing import NDArray
+
 from math import gcd
-from functools import reduce
+from functools import lru_cache
 from itertools import product, permutations
+import numpy as np
 
 
-def encodeTuple(xs: tuple[int, ...], k: int):
+from tqdm import tqdm
+
+from .utils_numba import decodeTuple_numba, encodeTuple_numba, isPrime_numba, permutationOrder_numba, compose_numba
+
+def encodeTuple(xs: np.ndarray | tuple[int, ...], k: int):
     '''Кодирует кортеж из n чисел от 0 до k-1 в число.'''
-    value = 0
-    for x in xs:
-        value = value * k + x
-    return value
+    coord = np.asarray(xs, dtype=np.int32)
+    return encodeTuple_numba(coord, k)
 
-def decodeTuple(num: int, n: int, k: int) -> tuple[int, ...]:
+@lru_cache(maxsize=1024)
+def decodeTuple(code: int, n: int, k: int) -> NDArray[np.int32]:
     '''Возвращает кортеж из n чисел от 0 до k-1, кодируемый данным индексом.'''
-    assert isinstance(num, int), num
-    coord = []
-    for _ in range(n):
-        num, rem = divmod(num, k)
-        coord.append(rem)
-    res = tuple(reversed(coord))
-    return res
+    assert isinstance(code, int), code
+    out = np.empty(n, dtype=np.int32)
+    decodeTuple_numba(code, n, k, out)
+    return out
 
 def nextTuple(xs: tuple[int, ...] | list[int], k: int):
-    '''Возвращает следующий кортеж ...'''
+    '''Возвращает следующий кортеж в порядке увеличения максимального элемента'''
     n = len(xs)
     assert n > 0, xs
     if n == 1:
@@ -157,51 +159,15 @@ def isPermutation(perm: list):
     unique_nums = len(set(perm))
     return n_numbers == unique_nums
 
-def isPrime(n: int):
-    """Проверка, является ли число простым."""
-    if n < 2:
-        return False
-    if n == 2:
-        return True
-    if n % 2 == 0:
-        return False
-    for i in range(3, int(n**0.5) + 1, 2):
-        if n % i == 0:
-            return False
-    return True
-
-
-def permutationOrder(perm):
-    """
-    perm: список, представляющий перестановку в виде [p(0), p(1), ..., p(n-1)]
-    Возвращает порядок перестановки.
-    """
-    n = len(perm)
-    visited = [False] * n
-    cycle_lengths = []
-    for i in range(n):
-        if not visited[i]:
-            length = 0
-            j = i
-            while not visited[j]:
-                visited[j] = True
-                j = perm[j]
-                length += 1
-            if length > 0:
-                cycle_lengths.append(length)
-    if not cycle_lengths:
-        return 1
-    return reduce(lcm, cycle_lengths)
-
-def isPrimePermutation(perm: list):
+def isPrimePermutation(perm: list) -> bool:
     '''
     Предикат, определяющий является ли perm перестановкой простого порядка.
     '''
     assert None not in perm
     if not isPermutation(perm):
         return False
-    order = permutationOrder(perm)
-    return isPrime(order)
+    order = permutationOrder_numba(np.array(perm))
+    return isPrime_numba(order)
 
 def getNewSingletonElement(knownElems: set[int], allElems: set[int]):
     '''
@@ -212,3 +178,30 @@ def getNewSingletonElement(knownElems: set[int], allElems: set[int]):
         return {min(allElems - knownElems)}
     else:
         return set[int]()
+
+
+def _list_to_array(lst: list, dtype=np.int32) -> np.ndarray:
+    arr = np.empty(len(lst), dtype=dtype)
+    for i, v in enumerate(lst):
+        arr[i] = -1 if v is None else v
+    return arr
+
+def _array_to_list(arr: np.ndarray) -> list:
+    return [None if v == -1 else int(v) for v in arr]
+
+def compose(f_body: list[int | None], gi_body: list[list[int | None] | None], N: int, K: int) -> list[int | None]:
+    size = len(f_body)
+    g_data = np.empty((N, size), dtype=np.int32)
+    g_is_proj = np.empty(N, dtype=np.bool_)
+
+    for i, g in enumerate(gi_body):
+        if g is None:
+            g_is_proj[i] = True
+            # g_data[i, :] = 0
+        else:
+            g_is_proj[i] = False
+            g_data[i, :] = _list_to_array(g)
+
+    f_arr = _list_to_array(f_body)
+    h_arr = compose_numba(f_arr, g_data, g_is_proj, N, K)
+    return _array_to_list(h_arr)
