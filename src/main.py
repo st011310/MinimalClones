@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 from libs.branch_bound import BranchAndBound
 from .kfuncs import Func1, Func2, FuncN
 from .stats import addStats
@@ -27,6 +29,13 @@ def main(K: int, filenames: list[str], verbose = False):
             [t(K).unpack(num).body for num in  solver.entityHashes],
             k=K, n=N
         )
+        print("Filter minimum...")
+        res = []
+        for entity in tqdm(entities):
+            func = FuncN(K=K, N=N)
+            func.body = entity
+            if func.isMinimal():
+                res.append(func.body)
         print("Sorting...")
-        entities.sort()
-        solver.save(filenames[i], entities)
+        res.sort()
+        solver.save(filenames[i], res)

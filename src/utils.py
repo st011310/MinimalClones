@@ -132,7 +132,7 @@ def removeConjugates(functions: list[list], n: int, k: int):
     Возвращает список представителей классов сопряжённости.
     """
     seen = {}
-    result = []
+    result = list[list]()
 
     for table in tqdm(functions):
         key = canonicalTable(table, n, k)
@@ -148,6 +148,7 @@ def removeConjugates(functions: list[list], n: int, k: int):
     return result
 
 def lcm(a, b):
+    '''НОК'''
     return a * b // gcd(a, b)
 
 def isPermutation(perm: list):
@@ -193,6 +194,9 @@ def permutationOrder(perm):
     return reduce(lcm, cycle_lengths)
 
 def isPrimePermutation(perm: list):
+    '''
+    Предикат, определяющий является ли perm перестановкой простого порядка.
+    '''
     assert None not in perm
     if not isPermutation(perm):
         return False
@@ -200,6 +204,10 @@ def isPrimePermutation(perm: list):
     return isPrime(order)
 
 def getNewSingletonElement(knownElems: set[int], allElems: set[int]):
+    '''
+    Возвращает синглтон от элемента, который ещё не знаком.
+    Если такого нет, то возращает пустое множество.
+    '''
     if len(allElems) != len(knownElems):
         return {min(allElems - knownElems)}
     else:

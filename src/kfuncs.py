@@ -118,6 +118,7 @@ class FuncN(Entity):
             ans = ans * self.K + dig
         return ans
 
+    
     def unpack(self, code: int):
         for i in range(self.K ** self.N):
             coord = decodeTuple(self.K ** self.N - 1 - i, self.N, self.K)
@@ -132,7 +133,7 @@ class FuncN(Entity):
             for coords in tupleIterator(self.K, self.N):
                 xi[coords] = coords[i]
             trivial_clone[xi.pack()] = xi
-        clone = {}
+        clone = dict[int, FuncN]()
         for funcs in permutations(trivial_clone.values()):
             new_func = self.compose(*funcs)
             code = new_func.pack()
@@ -174,6 +175,16 @@ class FuncN(Entity):
                     continue
                 clone.add(new_func)
                 yield new_func
+
+    def isMinimal(self):
+        for func in self.getCloneIterator():
+            clone = func.getClone({self.pack()})
+            isFound = len(clone) == 1
+            if not isFound:
+                return False
+        return True
+
+
 
     def __getitem__(self, key):
         """key – кортеж длины N."""
