@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from math import gcd
 from functools import reduce
 from itertools import product, permutations
@@ -73,11 +74,6 @@ def tupleIterator(k: int, n: int):
             for right in tupleIterator(k, n-i-1):
                 yield left + (k-1,) + right
 
-# def prevTuple(xs: tuple[int, ...], k: int):
-#     '''Возвращает предыдущий кортеж в лексикографическом порядке.'''
-#     n = len(xs)
-#     return decodeTuple((encodeTuple(xs, k) - 1) % (k ** n), n, k)
-
 def reval(table: list):
     if not isinstance(table[0], int) and table[0] is not None:
         table = sum([reval(subtable) for subtable in table], start=[])
@@ -138,7 +134,7 @@ def removeConjugates(functions: list[list], n: int, k: int):
     seen = {}
     result = []
 
-    for table in functions:
+    for table in tqdm(functions):
         key = canonicalTable(table, n, k)
         if key not in seen:
             seen[key] = table

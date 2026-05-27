@@ -15,6 +15,7 @@ class FuncN(Entity):
         self.nextCoord = (0,) * N
         self.knownElems = set[int]()
         self.deaph = 0
+        self.maxDeaph = K**N
         self._flat_cache = None
 
     def reval(self):
@@ -58,16 +59,33 @@ class FuncN(Entity):
     def isComplete(self) -> bool:
         return all(v is not None for v in self.reval())
 
-    def isCorrect(self):
+    def isCorrect(self, max_iteration = None):
         '''Функция минимальна среди порождающих функций'''
         if self.N <= 1:
             return True
-        for funcs in product([self, None], repeat=self.N):
-            if not any(funcs):
-                continue
-            ans = self.compose(*funcs)
-            if ans < self:
+        if max_iteration is None:
+            # max_iteration = 2 ** (self.maxDeaph - self.deaph)
+            best_choose = [0] * 5 + [5, 8, 44, 57, 45, 99]
+            if self.deaph <= 10:
+                max_iteration = 100
+            else:
+                max_iteration = 10
+        i = 0
+        for func in self.getCloneIterator():
+            if max_iteration < 0:
+                break
+            max_iteration -= 1
+            i += 1
+            if func < self:
+                # print(f"{self.deaph}. max_iteration for detecting =", i)
                 return False
+        # print(f"{self.deaph}. max_iteration for loosing =", i)
+        # for funcs in product([self, None], repeat=self.N):
+        #     if not any(funcs):
+        #         continue
+        #     ans = self.compose(*funcs)
+        #     if ans < self:
+        #         return False
         return True
 
     def isSuitable(self) -> bool:
@@ -94,7 +112,7 @@ class FuncN(Entity):
             h[coord] = self[args]
         return h
 
-    def self_apply(self) -> 'FuncN':
+    def selfApply(self) -> 'FuncN':
         """
         Самоподстановка: f̃(x) = f( f(x), …, f(x) ).
         """
@@ -117,7 +135,7 @@ class FuncN(Entity):
             code //= self.K
         return self
 
-    def getMinimalClone(self, stop_on = set[int]()):
+    def getClone(self, stop_on = set[int]()):
         trivial_clone = {}
         for i in range(self.N):
             xi = FuncN(self.N, self.K)
@@ -142,6 +160,31 @@ class FuncN(Entity):
                     return {code:new_func}
         return clone
 
+    def getCloneIterator(self):
+        trivial_clone = {}
+        for i in range(self.N):
+            xi = FuncN(self.N, self.K)
+            for coords in tupleIterator(self.K, self.N):
+                xi[coords] = coords[i]
+            trivial_clone[xi.pack()] = xi
+        clone = set()
+        for funcs in permutations(trivial_clone.values()):
+            new_func = self.compose(*funcs)
+            if new_func in clone:
+                continue
+            clone.add(new_func)
+            yield new_func
+        cur_len = 0
+        clone.add(None)
+        while len(clone) != cur_len:
+            cur_len = len(clone)
+            for funcs in product(clone, repeat=self.N):
+                new_func = self.compose(*funcs)
+                if new_func in clone:
+                    continue
+                clone.add(new_func)
+                yield new_func
+
     def __getitem__(self, key):
         """key – кортеж длины N."""
         if not isinstance(key, tuple) or len(key) != self.N:
@@ -153,6 +196,9 @@ class FuncN(Entity):
             val = val[idx]
         assert isinstance(val, (int, type(None)))
         return val
+
+    def __hash__(self) -> int:
+        return sum(i for i in self.reval() if i is not None)
 
     def __setitem__(self, key, value):
         if not isinstance(key, tuple) or len(key) != self.N:

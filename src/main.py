@@ -11,6 +11,8 @@ SOLVE_INFO_FILE = "solve_info.csv"
 def main(K: int, filenames: list[str], verbose = False):
     funcs: list[type[Func1 | Func2]] = [Func1, Func2]
     for i in range(min(2, len(filenames))):
+        if i == 0:
+            continue
         t = funcs[i]
         N = i+1
         solver = BranchAndBound(t(K), verbose=verbose)

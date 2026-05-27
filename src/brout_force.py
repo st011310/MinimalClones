@@ -17,7 +17,7 @@ def removeConjugates(N: int, K: int):
         if not table.isSuitable():
             continue
         code = table.pack()
-        clones[code] = table.getMinimalClone(set(seen.keys()))
+        clones[code] = table.getClone(set(seen.keys()))
         key = min(clones[code])
         if key not in seen:
             seen[key] = table
@@ -25,7 +25,7 @@ def removeConjugates(N: int, K: int):
         else:
             table2 = FuncN.copy(table)
             table2.unpack(key)
-            clones[key] = table2.getMinimalClone()
+            clones[key] = table2.getClone()
             cond = len(clones[key]) < len(clones[code])
             cond = cond or (
                 (len(clones[key]) == len(clones[code]))

@@ -23,9 +23,18 @@ class BranchAndBound:
         queue = SimpleQueue[Entity]()
         queue.put(self.initial)
         i = 0
+        deaph = 0
+        added = 0
+        corrected = 0
         while not queue.empty():
             entity = queue.get()
-            if self.verbose and (i % 1_000 == 0):
+            if deaph != entity.deaph:
+                print(f"Deaph {deaph}. Correct are {corrected} from {added}. It's {corrected / added * 100}%")
+                deaph = entity.deaph
+                added = 0
+                corrected = 0
+
+            if self.verbose and (i % 50 == 0):
                 print(f"{i}. {entity}")
             i += 1
 
@@ -37,7 +46,9 @@ class BranchAndBound:
                 continue
 
             for child in entity.branches():
+                added += 1
                 if child.isCorrect():
+                    corrected += 1
                     queue.put(child)
         return self.entityHashes
 

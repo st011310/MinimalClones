@@ -6,6 +6,7 @@ class Entity(ABC):
     Абстрактный класс «Сущность», определяющий интерфейс узла
     для метода ветвей и границ.
     """
+    deaph: int
 
     @abstractmethod
     def isComplete(self) -> bool:
@@ -23,28 +24,20 @@ class Entity(ABC):
 
     @abstractmethod
     def pack(self) -> int:
-        """
-        Кодирует объект
-        """
+        """Кодирует объект"""
         ...
 
     @abstractmethod
     def unpack(self, code: int):
-        """
-        Декодирует объект
-        """
+        """Декодирует объект"""
         ...
 
     @abstractmethod
     def isCorrect(self) -> bool:
-        """
-        Дополнительное фильтрация
-        """
+        """Фильтрация сразу после создания узла"""
         ...
 
     def isSuitable(self) -> bool:
-        """
-        Сущность подходит
-        """
+        """Листовой узел является подходящим"""
         ...
 
